@@ -1,0 +1,8 @@
+{
+  "name": "blood-donor-registry",
+  "version": "1.0.0",
+  "description": "Simple blood donor registry with filters by blood group and last donated date",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=18" }
+}

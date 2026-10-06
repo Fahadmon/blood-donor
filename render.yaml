@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: blood-donor-registry
+    runtime: node
+    plan: starter            # persistent disks need a paid plan on Render
+    buildCommand: echo "no build needed"
+    startCommand: node server.js
+    envVars:
+      - key: APP_PASSWORD
+        sync: false          # you will be asked for this in the dashboard
+      - key: DATA_DIR
+        value: /var/data
+    disk:
+      name: donor-data
+      mountPath: /var/data
+      sizeGB: 1
