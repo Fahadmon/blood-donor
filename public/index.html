@@ -132,7 +132,7 @@ dialog::backdrop{background:rgba(22,33,43,.55)}
   <div class="groups" id="groups" role="group" aria-label="Filter by blood group"></div>
 
   <div class="filters">
-    <div class="search"><label for="q">Search name, mobile or email</label><input id="q" type="search" placeholder="Start typing…"></div>
+    <div class="search"><label for="q">Search name, place, mobile or email</label><input id="q" type="search" placeholder="Start typing…"></div>
     <div><label for="from">Last donated from</label><input id="from" type="date"></div>
     <div><label for="to">Last donated until</label><input id="to" type="date"></div>
     <div><label for="elig">Availability</label>
@@ -159,7 +159,7 @@ dialog::backdrop{background:rgba(22,33,43,.55)}
   <div class="tablebox">
     <table>
       <thead><tr>
-        <th>Group</th><th>Name</th><th>Age</th><th>Mobile</th><th>Email</th><th>Last donated</th><th>Status</th><th></th>
+        <th>Group</th><th>Name</th><th>Age</th><th>Location</th><th>Mobile</th><th>Email</th><th>Last donated</th><th>Status</th><th></th>
       </tr></thead>
       <tbody id="rows"></tbody>
     </table>
@@ -175,6 +175,7 @@ dialog::backdrop{background:rgba(22,33,43,.55)}
       <div><label for="f-age">Age</label><input id="f-age" type="number" min="16" max="100" required></div>
       <div><label for="f-group">Blood group</label>
         <select id="f-group" required><option value="">Choose…</option></select></div>
+      <div class="full"><label for="f-location">Location / place</label><input id="f-location" required autocomplete="off" placeholder="e.g. Hyderabad, Madhapur"></div>
       <div><label for="f-mobile">Mobile number</label><input id="f-mobile" type="tel" required></div>
       <div><label for="f-email">Email (optional)</label><input id="f-email" type="email"></div>
       <div class="full"><label for="f-last">Last donated on (leave empty if never)</label><input id="f-last" type="date"></div>
@@ -228,7 +229,7 @@ function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show')
 function matches(d,ignoreGroup){
   if(!ignoreGroup&&groupFilter&&d.bloodGroup!==groupFilter)return false;
   const q=$('q').value.trim().toLowerCase();
-  if(q&&!(d.name+' '+d.mobile+' '+d.email).toLowerCase().includes(q))return false;
+  if(q&&!(d.name+' '+(d.location||'')+' '+d.mobile+' '+d.email).toLowerCase().includes(q))return false;
   const from=$('from').value,to=$('to').value;
   if(from||to){
     if(!d.lastDonated)return false;
@@ -268,6 +269,7 @@ function render(){
       <td class="bg"><span class="drop" aria-label="Blood group ${esc(d.bloodGroup)}"><span>${esc(d.bloodGroup)}</span></span></td>
       <td class="name">${esc(d.name)}</td>
       <td data-l="Age">${d.age}</td>
+      <td data-l="Location">${esc(d.location)||'—'}</td>
       <td data-l="Mobile"><a href="tel:${esc(d.mobile)}">${esc(d.mobile)}</a></td>
       <td data-l="Email">${d.email?`<a href="mailto:${esc(d.email)}">${esc(d.email)}</a>`:'—'}</td>
       <td data-l="Last donated">${fmtDate(d.lastDonated)}${d.lastDonated?`<span class="rel">${rel(d.lastDonated)}</span>`:''}</td>
@@ -306,7 +308,7 @@ function openForm(d){
   editingId=d?d.id:null;
   $('dlgTitle').textContent=d?'Edit donor':'Add donor';
   $('f-name').value=d?.name||'';$('f-age').value=d?.age||'';$('f-group').value=d?.bloodGroup||'';
-  $('f-mobile').value=d?.mobile||'';$('f-email').value=d?.email||'';$('f-last').value=d?.lastDonated||'';
+  $('f-location').value=d?.location||'';$('f-mobile').value=d?.mobile||'';$('f-email').value=d?.email||'';$('f-last').value=d?.lastDonated||'';
   $('f-last').max=today();$('formErr').textContent='';
   $('dlg').showModal();$('f-name').focus();
 }
@@ -317,7 +319,7 @@ $('f-group').innerHTML+=GROUPS.map(g=>`<option>${g}</option>`).join('');
 $('form').addEventListener('submit',async e=>{
   e.preventDefault();
   const body={name:$('f-name').value,age:$('f-age').value,bloodGroup:$('f-group').value,
-    mobile:$('f-mobile').value,email:$('f-email').value,lastDonated:$('f-last').value};
+    location:$('f-location').value,mobile:$('f-mobile').value,email:$('f-email').value,lastDonated:$('f-last').value};
   $('save').disabled=true;
   try{
     if(editingId){const u=await api('/donors/'+editingId,{method:'PUT',body:JSON.stringify(body)});donors=donors.map(d=>d.id===u.id?u:d);}
@@ -330,8 +332,8 @@ $('form').addEventListener('submit',async e=>{
 $('exportBtn').onclick=()=>{
   const list=sorted(donors.filter(d=>matches(d)));
   const cell=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
-  const csv=[['Name','Age','Mobile','Email','Blood group','Last donated']]
-    .concat(list.map(d=>[d.name,d.age,d.mobile,d.email,d.bloodGroup,d.lastDonated||'']))
+  const csv=[['Name','Age','Location','Mobile','Email','Blood group','Last donated']]
+    .concat(list.map(d=>[d.name,d.age,d.location,d.mobile,d.email,d.bloodGroup,d.lastDonated||'']))
     .map(r=>r.map(cell).join(',')).join('\n');
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
