@@ -43,6 +43,7 @@ function validate(b) {
     age: parseInt(b.age, 10),
     mobile: String(b.mobile || '').trim(),
     email: String(b.email || '').trim(),
+    location: String(b.location || '').trim(),
     bloodGroup: String(b.bloodGroup || '').trim().toUpperCase(),
     lastDonated: String(b.lastDonated || '').trim() || null,
   };
@@ -50,6 +51,8 @@ function validate(b) {
   if (!(d.age >= 16 && d.age <= 100)) return { error: 'Enter a valid age.' };
   if (!/^\+?[0-9 \-]{7,15}$/.test(d.mobile)) return { error: 'Enter a valid mobile number (7-15 digits).' };
   if (d.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.email)) return { error: 'Enter a valid email address.' };
+  if (!d.location) return { error: 'Location / place is required.' };
+  if (d.location.length > 100) return { error: 'Location is too long (max 100 characters).' };
   if (!GROUPS.includes(d.bloodGroup)) return { error: 'Choose a blood group.' };
   if (d.lastDonated) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(d.lastDonated) || isNaN(Date.parse(d.lastDonated))) return { error: 'Enter a valid last donated date.' };

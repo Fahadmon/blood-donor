@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Blood Donor Registry</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F2F4F6; --card:#FFFFFF; --ink:#16212B; --muted:#5E6B78; --line:#DDE2E7;
+  --blood:#B5122C; --blood-dark:#8E0E22; --blood-tint:#FBE9EC;
+  --ok:#1E7A55; --ok-tint:#E2F3EB; --wait:#9A6A00; --wait-tint:#FBF0D3;
+  --radius:10px;
+}
+*{box-sizing:border-box}
+html{font-family:'Bricolage Grotesque',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:var(--paper)}
+body{margin:0;font-size:15px;line-height:1.45}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid #1B6FD8;outline-offset:2px}
+.wrap{max-width:1180px;margin:0 auto;padding:28px 20px 60px}
+
+/* header */
+header{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between;margin-bottom:24px}
+h1{margin:0;font-size:clamp(28px,4vw,40px);font-weight:800;letter-spacing:-.02em;line-height:1.05}
+.sub{color:var(--muted);margin-top:6px}
+.actions{display:flex;gap:10px;flex-wrap:wrap}
+.btn{border:1px solid var(--line);background:var(--card);padding:10px 16px;border-radius:8px;cursor:pointer;font-weight:600}
+.btn:hover{border-color:#b9c1c9}
+.btn.primary{background:var(--blood);border-color:var(--blood);color:#fff}
+.btn.primary:hover{background:var(--blood-dark)}
+.btn.danger{color:var(--blood);border-color:#E9B6BE}
+.btn.small{padding:6px 10px;font-size:13px}
+
+/* blood group strip - the one memorable element */
+.groups{display:grid;grid-template-columns:repeat(9,1fr);gap:8px;margin-bottom:16px}
+.g{position:relative;border:1px solid var(--line);background:var(--card);border-radius:var(--radius);padding:12px 6px 10px;cursor:pointer;text-align:center;transition:background .15s,border-color .15s,color .15s}
+.g .t{display:block;font-size:22px;font-weight:800;letter-spacing:-.01em}
+.g .n{display:block;font-size:12px;color:var(--muted);margin-top:2px}
+.g:hover{border-color:var(--blood)}
+.g[aria-pressed="true"]{background:var(--blood);border-color:var(--blood);color:#fff}
+.g[aria-pressed="true"] .n{color:#F6C9D0}
+.g.empty{opacity:.5}
+
+/* filters */
+.filters{display:grid;grid-template-columns:2fr 1fr 1fr 1.3fr auto;gap:12px;align-items:end;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px;margin-bottom:12px}
+label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:4px}
+input,select{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:#fff}
+.summary{display:flex;justify-content:space-between;align-items:center;margin:14px 2px;color:var(--muted);font-size:14px;gap:12px;flex-wrap:wrap}
+.summary strong{color:var(--ink)}
+
+/* table */
+.tablebox{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+table{width:100%;border-collapse:collapse}
+th,td{padding:12px 14px;text-align:left;border-bottom:1px solid var(--line);vertical-align:middle}
+th{font-size:13px;color:var(--muted);font-weight:600;background:#FAFBFC;white-space:nowrap}
+th button{all:unset;cursor:pointer}
+th button:focus-visible{outline:3px solid #1B6FD8}
+tr:last-child td{border-bottom:0}
+tbody tr:hover{background:#FAFBFC}
+td a{color:inherit}
+.name{font-weight:600}
+.drop{display:inline-grid;place-items:center;width:46px;height:46px;position:relative;font-weight:800;color:#fff;font-size:14px}
+.drop::before{content:"";position:absolute;inset:7px;background:var(--blood);border-radius:50% 0 50% 50%;transform:rotate(-45deg)}
+.drop span{position:relative;top:2px}
+.pill{display:inline-block;padding:3px 10px;border-radius:99px;font-size:13px;font-weight:600;white-space:nowrap}
+.pill.ok{background:var(--ok-tint);color:var(--ok)}
+.pill.wait{background:var(--wait-tint);color:var(--wait)}
+.pill.never{background:#E8ECF0;color:var(--muted)}
+.rel{display:block;font-size:12px;color:var(--muted)}
+.row-actions{display:flex;gap:6px;justify-content:flex-end}
+.empty-state{padding:48px 20px;text-align:center;color:var(--muted)}
+.empty-state b{display:block;color:var(--ink);font-size:18px;margin-bottom:6px}
+
+/* dialog */
+dialog{border:0;border-radius:14px;padding:0;width:min(520px,94vw);box-shadow:0 20px 60px rgba(0,0,0,.3)}
+dialog::backdrop{background:rgba(22,33,43,.55)}
+.dlg{padding:24px}
+.dlg h2{margin:0 0 16px;font-size:22px}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.fields .full{grid-column:1/-1}
+.err{color:var(--blood);font-weight:600;min-height:20px;margin-top:10px}
+.dlg-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:12px}
+
+/* login */
+#login{max-width:360px;margin:12vh auto;background:var(--card);padding:28px;border-radius:14px;border:1px solid var(--line)}
+#login h1{font-size:28px;margin-bottom:16px}
+
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:10px 18px;border-radius:8px;opacity:0;pointer-events:none;transition:.2s}
+#toast.show{opacity:1;transform:translateX(-50%)}
+[hidden]{display:none!important}
+
+@media (max-width:900px){
+  .groups{grid-template-columns:repeat(3,1fr)}
+  .filters{grid-template-columns:1fr 1fr}
+  .filters .search{grid-column:1/-1}
+  /* table -> cards */
+  thead{display:none}
+  table,tbody,tr,td{display:block}
+  tr{padding:12px 14px;border-bottom:1px solid var(--line);position:relative}
+  td{border:0;padding:3px 0}
+  td.bg{position:absolute;right:10px;top:8px}
+  .row-actions{justify-content:flex-start;margin-top:8px}
+  td[data-l]::before{content:attr(data-l) ": ";color:var(--muted);font-size:13px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div id="login" hidden>
+  <h1>Blood Donor Registry</h1>
+  <label for="pw">Password</label>
+  <input id="pw" type="password" autocomplete="current-password">
+  <div class="err" id="loginErr"></div>
+  <button class="btn primary" id="loginBtn" style="width:100%;margin-top:6px">Sign in</button>
+</div>
+
+<div class="wrap" id="app" hidden>
+  <header>
+    <div>
+      <h1>Blood Donor Registry</h1>
+      <div class="sub" id="sub"></div>
+    </div>
+    <div class="actions">
+      <button class="btn" id="exportBtn">Download CSV</button>
+      <button class="btn primary" id="addBtn">Add donor</button>
+    </div>
+  </header>
+
+  <div class="groups" id="groups" role="group" aria-label="Filter by blood group"></div>
+
+  <div class="filters">
+    <div class="search"><label for="q">Search name, place, mobile or email</label><input id="q" type="search" placeholder="Start typing…"></div>
+    <div><label for="from">Last donated from</label><input id="from" type="date"></div>
+    <div><label for="to">Last donated until</label><input id="to" type="date"></div>
+    <div><label for="elig">Availability</label>
+      <select id="elig">
+        <option value="all">All donors</option>
+        <option value="eligible">Can donate now</option>
+        <option value="wait">Donated recently</option>
+        <option value="never">Never donated</option>
+      </select></div>
+    <button class="btn" id="clear">Clear filters</button>
+  </div>
+
+  <div class="summary">
+    <span id="count"></span>
+    <label style="margin:0;display:flex;align-items:center;gap:8px">Sort by
+      <select id="sort" style="width:auto">
+        <option value="name">Name (A–Z)</option>
+        <option value="oldest">Last donated (oldest first)</option>
+        <option value="newest">Last donated (newest first)</option>
+        <option value="added">Recently added</option>
+      </select></label>
+  </div>
+
+  <div class="tablebox">
+    <table>
+      <thead><tr>
+        <th>Group</th><th>Name</th><th>Age</th><th>Location</th><th>Mobile</th><th>Email</th><th>Last donated</th><th>Status</th><th></th>
+      </tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div class="empty-state" id="empty" hidden></div>
+  </div>
+</div>
+
+<dialog id="dlg">
+  <form class="dlg" id="form" method="dialog" novalidate>
+    <h2 id="dlgTitle">Add donor</h2>
+    <div class="fields">
+      <div class="full"><label for="f-name">Full name</label><input id="f-name" required autocomplete="off"></div>
+      <div><label for="f-age">Age</label><input id="f-age" type="number" min="16" max="100" required></div>
+      <div><label for="f-group">Blood group</label>
+        <select id="f-group" required><option value="">Choose…</option></select></div>
+      <div class="full"><label for="f-location">Location / place</label><input id="f-location" required autocomplete="off" placeholder="e.g. Hyderabad, Madhapur"></div>
+      <div><label for="f-mobile">Mobile number</label><input id="f-mobile" type="tel" required></div>
+      <div><label for="f-email">Email (optional)</label><input id="f-email" type="email"></div>
+      <div class="full"><label for="f-last">Last donated on (leave empty if never)</label><input id="f-last" type="date"></div>
+    </div>
+    <div class="err" id="formErr" role="alert"></div>
+    <div class="dlg-actions">
+      <button type="button" class="btn" id="cancel">Cancel</button>
+      <button type="submit" class="btn primary" id="save">Save donor</button>
+    </div>
+  </form>
+</dialog>
+<div id="toast" role="status"></div>
+
+<script>
+const GROUPS=['A+','A-','B+','B-','AB+','AB-','O+','O-'];
+const WAIT_DAYS=90;   // minimum gap between whole-blood donations
+const $=id=>document.getElementById(id);
+let donors=[], editingId=null, groupFilter='';
+let token=sessionStorage.getItem('token')||'';
+
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const today=()=>new Date().toISOString().slice(0,10);
+const daysSince=d=>Math.floor((Date.parse(today())-Date.parse(d))/864e5);
+const fmtDate=d=>d?new Date(d+'T00:00:00').toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'}):'—';
+
+function rel(d){
+  const n=daysSince(d);
+  if(n===0)return 'today';
+  if(n<31)return n+' day'+(n>1?'s':'')+' ago';
+  if(n<365){const m=Math.floor(n/30);return m+' month'+(m>1?'s':'')+' ago';}
+  const y=Math.floor(n/365);return y+' year'+(y>1?'s':'')+' ago';
+}
+function status(d){
+  if(!d.lastDonated)return {k:'never',t:'Never donated'};
+  const n=daysSince(d.lastDonated);
+  if(n>=WAIT_DAYS)return {k:'ok',t:'Can donate'};
+  return {k:'wait',t:'Eligible in '+(WAIT_DAYS-n)+'d'};
+}
+
+async function api(path,opts={}){
+  const res=await fetch('/api'+path,{...opts,headers:{'Content-Type':'application/json','x-auth':token}});
+  if(res.status===401){showLogin();throw new Error('Login required');}
+  const data=await res.json();
+  if(!res.ok)throw new Error(data.error||'Something went wrong');
+  return data;
+}
+
+function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('show'),2200);}
+
+/* ---------- filtering ---------- */
+function matches(d,ignoreGroup){
+  if(!ignoreGroup&&groupFilter&&d.bloodGroup!==groupFilter)return false;
+  const q=$('q').value.trim().toLowerCase();
+  if(q&&!(d.name+' '+(d.location||'')+' '+d.mobile+' '+d.email).toLowerCase().includes(q))return false;
+  const from=$('from').value,to=$('to').value;
+  if(from||to){
+    if(!d.lastDonated)return false;
+    if(from&&d.lastDonated<from)return false;
+    if(to&&d.lastDonated>to)return false;
+  }
+  const e=$('elig').value;
+  if(e!=='all'&&status(d).k!==(e==='eligible'?'ok':e))return false;
+  return true;
+}
+function sorted(list){
+  const s=$('sort').value,c=[...list];
+  const key=d=>d.lastDonated||'';
+  if(s==='name')c.sort((a,b)=>a.name.localeCompare(b.name));
+  if(s==='oldest')c.sort((a,b)=>(key(a)||'0000').localeCompare(key(b)||'0000')); // never donated first
+  if(s==='newest')c.sort((a,b)=>key(b).localeCompare(key(a)));
+  if(s==='added')c.sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+  return c;
+}
+
+/* ---------- render ---------- */
+function render(){
+  $('sub').textContent=donors.length+' donor'+(donors.length===1?'':'s')+' on record';
+
+  // group strip: counts reflect the other active filters
+  const others=donors.filter(d=>matches(d,true));
+  const counts=Object.fromEntries(GROUPS.map(g=>[g,others.filter(d=>d.bloodGroup===g).length]));
+  $('groups').innerHTML=
+    `<button class="g" aria-pressed="${groupFilter===''}" data-g=""><span class="t">All</span><span class="n">${others.length}</span></button>`+
+    GROUPS.map(g=>`<button class="g ${counts[g]?'':'empty'}" aria-pressed="${groupFilter===g}" data-g="${g}"><span class="t">${g}</span><span class="n">${counts[g]}</span></button>`).join('');
+
+  const list=sorted(donors.filter(d=>matches(d)));
+  $('count').innerHTML=`Showing <strong>${list.length}</strong> of ${donors.length}`;
+  $('rows').innerHTML=list.map(d=>{
+    const st=status(d);
+    return `<tr>
+      <td class="bg"><span class="drop" aria-label="Blood group ${esc(d.bloodGroup)}"><span>${esc(d.bloodGroup)}</span></span></td>
+      <td class="name">${esc(d.name)}</td>
+      <td data-l="Age">${d.age}</td>
+      <td data-l="Location">${esc(d.location)||'—'}</td>
+      <td data-l="Mobile"><a href="tel:${esc(d.mobile)}">${esc(d.mobile)}</a></td>
+      <td data-l="Email">${d.email?`<a href="mailto:${esc(d.email)}">${esc(d.email)}</a>`:'—'}</td>
+      <td data-l="Last donated">${fmtDate(d.lastDonated)}${d.lastDonated?`<span class="rel">${rel(d.lastDonated)}</span>`:''}</td>
+      <td><span class="pill ${st.k}">${st.t}</span></td>
+      <td><div class="row-actions">
+        <button class="btn small" data-edit="${d.id}">Edit</button>
+        <button class="btn small danger" data-del="${d.id}">Delete</button></div></td>
+    </tr>`;}).join('');
+
+  const empty=$('empty');
+  if(!list.length){
+    empty.hidden=false;
+    empty.innerHTML=donors.length
+      ?'<b>No donors match these filters</b>Try a different blood group or date range, or clear the filters.'
+      :'<b>No donors yet</b>Select “Add donor” to enter the first person.';
+  } else empty.hidden=true;
+}
+
+/* ---------- events ---------- */
+$('groups').addEventListener('click',e=>{const b=e.target.closest('.g');if(!b)return;groupFilter=b.dataset.g;render();});
+['q','from','to','elig','sort'].forEach(id=>$(id).addEventListener('input',render));
+$('clear').onclick=()=>{groupFilter='';['q','from','to'].forEach(i=>$(i).value='');$('elig').value='all';render();};
+
+$('rows').addEventListener('click',async e=>{
+  const ed=e.target.closest('[data-edit]'),del=e.target.closest('[data-del]');
+  if(ed)openForm(donors.find(d=>d.id===ed.dataset.edit));
+  if(del){
+    const d=donors.find(x=>x.id===del.dataset.del);
+    if(!confirm(`Delete ${d.name}? This cannot be undone.`))return;
+    try{await api('/donors/'+d.id,{method:'DELETE'});donors=donors.filter(x=>x.id!==d.id);render();toast('Donor deleted');}
+    catch(err){toast(err.message);}
+  }
+});
+
+function openForm(d){
+  editingId=d?d.id:null;
+  $('dlgTitle').textContent=d?'Edit donor':'Add donor';
+  $('f-name').value=d?.name||'';$('f-age').value=d?.age||'';$('f-group').value=d?.bloodGroup||'';
+  $('f-location').value=d?.location||'';$('f-mobile').value=d?.mobile||'';$('f-email').value=d?.email||'';$('f-last').value=d?.lastDonated||'';
+  $('f-last').max=today();$('formErr').textContent='';
+  $('dlg').showModal();$('f-name').focus();
+}
+$('addBtn').onclick=()=>openForm(null);
+$('cancel').onclick=()=>$('dlg').close();
+$('f-group').innerHTML+=GROUPS.map(g=>`<option>${g}</option>`).join('');
+
+$('form').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const body={name:$('f-name').value,age:$('f-age').value,bloodGroup:$('f-group').value,
+    location:$('f-location').value,mobile:$('f-mobile').value,email:$('f-email').value,lastDonated:$('f-last').value};
+  $('save').disabled=true;
+  try{
+    if(editingId){const u=await api('/donors/'+editingId,{method:'PUT',body:JSON.stringify(body)});donors=donors.map(d=>d.id===u.id?u:d);}
+    else donors.push(await api('/donors',{method:'POST',body:JSON.stringify(body)}));
+    $('dlg').close();render();toast(editingId?'Donor updated':'Donor added');
+  }catch(err){$('formErr').textContent=err.message;}
+  $('save').disabled=false;
+});
+
+$('exportBtn').onclick=()=>{
+  const list=sorted(donors.filter(d=>matches(d)));
+  const cell=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
+  const csv=[['Name','Age','Location','Mobile','Email','Blood group','Last donated']]
+    .concat(list.map(d=>[d.name,d.age,d.location,d.mobile,d.email,d.bloodGroup,d.lastDonated||'']))
+    .map(r=>r.map(cell).join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download='blood-donors-'+today()+'.csv';a.click();
+};
+
+/* ---------- login / start ---------- */
+function showLogin(){$('app').hidden=true;$('login').hidden=false;sessionStorage.removeItem('token');token='';$('pw').focus();}
+async function doLogin(){
+  try{
+    const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:$('pw').value})});
+    const d=await r.json();if(!r.ok)throw new Error(d.error);
+    token=d.token;sessionStorage.setItem('token',token);$('pw').value='';start();
+  }catch(e){$('loginErr').textContent=e.message;}
+}
+$('loginBtn').onclick=doLogin;
+$('pw').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+
+async function start(){
+  try{
+    donors=await api('/donors');
+    $('login').hidden=true;$('app').hidden=false;render();
+  }catch(e){ if(e.message!=='Login required')toast(e.message); }
+}
+start();
+</script>
+</body>
+</html>
